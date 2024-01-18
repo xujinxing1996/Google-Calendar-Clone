@@ -19,6 +19,7 @@ import Modal, { ModalProps } from "./Modal";
 import { Event } from "../context/Events";
 import { UnionOmit } from "../utils/types";
 import { EVENT_COLORS, useEvents } from "../context/useEvent";
+import OverflowContainer from "./OverflowContainer";
 
 const Calendar = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
@@ -85,6 +86,8 @@ const CalendarDay = ({
 }: CalendarDayProps) => {
   const { addEvent } = useEvents();
   const [isOpenEventFormModal, setIsOpenEventFormModal] = useState(false);
+  const [isViewMoreEventModalOpen, setIsViewMoreEventModalOpen] =
+    useState(false);
 
   const sortedEvents = useMemo(() => {
     const timeToNumber = (time: string) => {
@@ -133,11 +136,27 @@ const CalendarDay = ({
         date={day}
       />
       {sortedEvents.length > 0 && (
-        <div className="events">
-          {sortedEvents.map((event) => (
-            <CalendarEvent key={event.id} event={event} />
-          ))}
-        </div>
+        <OverflowContainer
+          className="events"
+          items={sortedEvents}
+          getKey={(event) => event.id}
+          renderItem={(event) => <CalendarEvent key={event.id} event={event} />}
+          renderOverflow={(amount) => (
+            <>
+              <button
+                className="events-view-more-btn"
+                onClick={() => setIsViewMoreEventModalOpen(true)}
+              >
+                +{amount} More
+              </button>
+              <ViewMoreEventModal
+                events={sortedEvents}
+                isOpen={isViewMoreEventModalOpen}
+                onClose={() => setIsViewMoreEventModalOpen(false)}
+              />
+            </>
+          )}
+        />
       )}
     </div>
   );
@@ -181,6 +200,33 @@ const CalendarEvent = ({ event }: CalendarEventProps) => {
         onClose={() => setIsOpenEditEventFormModal(false)}
       />
     </>
+  );
+};
+
+type ViewMoreEventModalProps = {
+  events: Event[];
+} & Omit<ModalProps, "children">;
+
+const ViewMoreEventModal = ({
+  events,
+  ...modalProps
+}: ViewMoreEventModalProps) => {
+  if (events.length === 0) return null;
+
+  return (
+    <Modal {...modalProps}>
+      <div className="modal-title">
+        <small>{formatDate(events[0].date, { dateStyle: "short" })}</small>
+        <button className="close-btn" onClick={modalProps.onClose}>
+          &times;
+        </button>
+      </div>
+      <div className="events">
+        {events.map((event) => (
+          <CalendarEvent event={event} key={event.id} />
+        ))}
+      </div>
+    </Modal>
   );
 };
 
